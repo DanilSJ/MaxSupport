@@ -1,3 +1,4 @@
+from maxapi import Bot
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 import os
@@ -14,3 +15,4 @@ class Settings(BaseSettings):
     TOKEN: str = os.getenv("TOKEN")
 
 settings = Settings()
+bot = Bot(token=settings.TOKEN)
