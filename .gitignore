@@ -10,3 +10,4 @@ wheels/
 .venv/
 .idea/
 db.sqlite3
+.env
