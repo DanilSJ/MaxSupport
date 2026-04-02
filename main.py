@@ -1,8 +1,11 @@
 import asyncio
+import logging
 from maxapi import Dispatcher
 from core.config import bot
 from app.start.handler import router as start_router
 
+
+logging.basicConfig(level=logging.INFO)
 dp = Dispatcher()
 
 async def main():
