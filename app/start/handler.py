@@ -1,7 +1,7 @@
 from maxapi import Router, F
 from maxapi.types import MessageCreated, Command, BotStarted
 from core.config import bot
-from maxapi.exceptions.dispatcher import MiddlewareException
+from maxapi.exceptions import MaxApiError
 from maxapi.enums.parse_mode import ParseMode
 from collections import defaultdict
 import time
@@ -72,11 +72,13 @@ async def echo(event: MessageCreated):
             return await event.message.forward(chat_id=-72977444868127)
 
         if event.message.link.sender.user_id == 230120179:
+            user = await bot.get_message(event.message.link.message.mid)
+
             try:
-                return await bot.send_message(user_id=event.message.sender.user_id, text=event.message.body.text)
-            except MiddlewareException:
+                return await bot.send_message(user_id=user.link.sender.user_id, text=event.message.body.text)
+            except MaxApiError:
                 return await bot.send_message(chat_id=-72977444868127,
-                                              text=f"<a href='{event.message.sender.user_id}'>Пользователь</a> заблокировал бота",
+                                              text=f"<a href='max://user/{user.link.sender.user_id}'>Пользователь</a> заблокировал бота",
                                               parse_mode=ParseMode.HTML)
-    except MiddlewareException:
+    except MaxApiError:
         return await event.message.answer("Бот не добавлен в группу")
