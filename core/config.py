@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     db_echo: bool = False
 
     TOKEN: str = os.getenv("TOKEN")
+    GROUP: int = os.getenv("GROUP")
 
 settings = Settings()
 bot = Bot(token=settings.TOKEN)
