@@ -396,6 +396,7 @@ dependencies = [
     { name = "maxapi" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "python-dotenv" },
 ]
 
 [package.metadata]
@@ -404,6 +405,7 @@ requires-dist = [
     { name = "maxapi", specifier = ">=0.9.18" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.13.1" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
 ]
 
 [[package]]
