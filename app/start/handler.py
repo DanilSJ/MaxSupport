@@ -5,6 +5,7 @@ from maxapi.exceptions import MaxApiError
 from maxapi.enums.parse_mode import ParseMode
 from collections import defaultdict
 import time
+from core.config import settings
 
 router = Router()
 
@@ -68,8 +69,8 @@ async def start(event: MessageCreated):
 @rate_limit(limit=2, seconds=2)
 async def echo(event: MessageCreated):
     try:
-        if event.chat.chat_id != -72977444868127:
-            return await event.message.forward(chat_id=-72977444868127)
+        if event.chat.chat_id != settings.GROUP:
+            return await event.message.forward(chat_id=settings.GROUP)
 
         if event.message.link.sender.user_id == 230120179:
             user = await bot.get_message(event.message.link.message.mid)
@@ -77,7 +78,7 @@ async def echo(event: MessageCreated):
             try:
                 return await bot.send_message(user_id=user.link.sender.user_id, text=event.message.body.text)
             except MaxApiError:
-                return await bot.send_message(chat_id=-72977444868127,
+                return await bot.send_message(chat_id=settings.GROUP,
                                               text=f"<a href='max://user/{user.link.sender.user_id}'>Пользователь</a> заблокировал бота",
                                               parse_mode=ParseMode.HTML)
     except MaxApiError:
