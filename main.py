@@ -3,13 +3,14 @@ import logging
 from maxapi import Dispatcher
 from core.config import bot
 from app.start.handler import router as start_router
-
+from app.mailing.handler import router as mailing_router
 
 logging.basicConfig(level=logging.INFO)
 dp = Dispatcher()
 
 async def main():
     dp.include_routers(start_router)
+    dp.include_routers(mailing_router)
 
     await asyncio.gather(
         dp.start_polling(bot)
