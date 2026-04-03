@@ -4,8 +4,9 @@ from core.config import bot
 from maxapi.enums.parse_mode import ParseMode
 import asyncio
 from core.models import db_helper
-from .crud import get_all_users
+from .crud import get_all_users, get_user
 from maxapi.context import MemoryContext, StatesGroup, State
+
 router = Router()
 
 class MailingStates(StatesGroup):
@@ -15,16 +16,27 @@ class MailingStates(StatesGroup):
 
 @router.message_created(Command('mailing'))
 async def mailing_command(event: MessageCreated, context: MemoryContext):
-    """Команда для начала рассылки"""
-    await context.set_state(MailingStates.waiting_for_text)
-    await context.update_data(admin_id=event.message.sender.user_id)
+    """Команда для начала рассылки — доступ только для админов"""
+    user_id = event.message.sender.user_id
 
-    await event.message.answer(
-        "📢 **Режим рассылки активирован**\n\n"
-        "Отправьте текст сообщения, которое хотите разослать всем пользователям.\n\n"
-        "Для отмены рассылки отправьте /cancel_mailing",
-        parse_mode=ParseMode.MARKDOWN
-    )
+    user = []
+
+    async for session in db_helper.scoped_session_dependency():
+        user = await get_user(session, user_id)
+        break
+
+    if user and getattr(user, 'admin', False):
+        await context.set_state(MailingStates.waiting_for_text)
+        await context.update_data(admin_id=user_id)
+        await event.message.answer(
+            "📢 **Режим рассылки активирован**\n\n"
+            "Отправьте текст сообщения для рассылки всем пользователям.\n\n"
+            "Для отмены рассылки отправьте /cancel_mailing",
+            parse_mode=ParseMode.MARKDOWN
+        )
+    else:
+        await event.message.answer("❌ У вас нет доступа к этой команде.")
+
 
 @router.message_created(Command('cancel_mailing'))
 async def cancel_mailing(event: MessageCreated, context: MemoryContext):
@@ -49,7 +61,6 @@ async def process_mailing_text(event: MessageCreated, context: MemoryContext):
     await context.set_state(None)
 
     users = []
-
     async for session in db_helper.scoped_session_dependency():
         users = await get_all_users(session)
         break
@@ -59,6 +70,9 @@ async def process_mailing_text(event: MessageCreated, context: MemoryContext):
         await context.clear()
         return
 
+    success_count = 0
+    blocked_count = 0
+
     for user in users:
         try:
             await bot.send_message(
@@ -66,11 +80,17 @@ async def process_mailing_text(event: MessageCreated, context: MemoryContext):
                 text=event.message.body.text,
                 parse_mode=ParseMode.HTML
             )
+            success_count += 1
             await asyncio.sleep(0.1)
-        except Exception as e:
-            print(e)
-            pass
+        except Exception:
+            blocked_count += 1
+            continue
 
-    await event.message.answer("Рассылка завершена")
+    await event.message.answer(
+        f"✅ Рассылка завершена!\n\n"
+        f"Всего пользователей в боте: {len(users)}\n"
+        f"Сообщений отправлено: {success_count}\n"
+        f"Не смогли доставить (заблокировали бота или ошибки): {blocked_count}"
+    )
 
     await context.clear()
