@@ -1,0 +1,47 @@
+from maxapi import Router, F
+from maxapi.types import MessageCreated
+from core.config import bot
+from maxapi.exceptions import MaxApiError
+from maxapi.enums.parse_mode import ParseMode
+from core.config import settings
+from core.models import db_helper
+from maxapi.context import MemoryContext
+from app.utils.rate_limit import rate_limit
+from .crud import get_all_chats_id, get_user_with_chat
+
+router = Router()
+
+@router.message_created(F.message.body)
+@rate_limit(limit=2, seconds=2)
+async def echo(event: MessageCreated, context: MemoryContext):
+
+    current_state = await context.get_state()
+
+    if current_state is not None:
+        return
+
+    try:
+
+        async for session in db_helper.scoped_session_dependency():
+            user = await get_user_with_chat(session, event.from_user.user_id)
+
+            chats_id = await get_all_chats_id(session)
+
+            if event.chat.chat_id not in chats_id:
+                return await event.message.forward(chat_id=user.chat_id)
+
+
+            if event.message.link.sender.user_id == 230120179:
+                user = await bot.get_message(event.message.link.message.mid)
+
+                try:
+                    return await bot.send_message(user_id=user.link.sender.user_id, text=event.message.body.text)
+                except MaxApiError:
+                    return await bot.send_message(chat_id=settings.GROUP,
+                                                  text=f"<a href='max://user/{user.link.sender.user_id}'>Пользователь</a> заблокировал бота",
+                                                  parse_mode=ParseMode.HTML)
+
+            break
+    except Exception as e:
+        print(e)
+        return await event.message.answer("Бот не добавлен в группу")
