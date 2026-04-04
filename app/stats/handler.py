@@ -11,14 +11,13 @@ router = Router()
 async def stats(event: MessageCreated):
     user_id = event.message.sender.user_id
     users_count = 0
-    async for session in db_helper.scoped_session_dependency():
+    async with db_helper.scoped_session_dependency() as session:
         user = await get_user(session, user_id)
         if not user or not getattr(user, 'admin', False):
             await event.message.answer("❌ У вас нет доступа к этой команде.")
             return
 
         users_count = await get_users_count(session)
-        break
 
     await event.message.answer(
         f"📊 **Статистика бота**\n\n"

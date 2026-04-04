@@ -21,9 +21,8 @@ async def mailing_command(event: MessageCreated, context: MemoryContext):
 
     user = []
 
-    async for session in db_helper.scoped_session_dependency():
+    async with db_helper.scoped_session_dependency() as session:
         user = await get_user(session, user_id)
-        break
 
     if user and getattr(user, 'admin', False):
         await context.set_state(MailingStates.waiting_for_text)
@@ -61,9 +60,8 @@ async def process_mailing_text(event: MessageCreated, context: MemoryContext):
     await context.set_state(None)
 
     users = []
-    async for session in db_helper.scoped_session_dependency():
+    async with db_helper.scoped_session_dependency() as session:
         users = await get_all_users(session)
-        break
 
     if not users:
         await event.message.answer("❌ В базе данных нет пользователей для рассылки.")

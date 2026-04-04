@@ -14,7 +14,6 @@ router = Router()
 @router.message_created(F.message.body)
 @rate_limit(limit=2, seconds=2)
 async def echo(event: MessageCreated, context: MemoryContext):
-
     current_state = await context.get_state()
 
     if current_state is not None:
@@ -22,7 +21,7 @@ async def echo(event: MessageCreated, context: MemoryContext):
 
     try:
 
-        async for session in db_helper.scoped_session_dependency():
+        async with db_helper.scoped_session_dependency() as session:
             user = await get_user_with_chat(session, event.from_user.user_id)
 
             chats_id = await get_all_chats_id(session)
@@ -49,7 +48,6 @@ async def echo(event: MessageCreated, context: MemoryContext):
                                                   text=f"<a href='max://user/{user.link.sender.user_id}'>Пользователь</a> заблокировал бота",
                                                   parse_mode=ParseMode.HTML)
 
-            break
     except Exception as e:
         print(e)
         return await event.message.answer("Бот не добавлен в группу")

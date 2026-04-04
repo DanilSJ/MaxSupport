@@ -27,9 +27,8 @@ async def build_cities_keyboard(session):
 
 @router.bot_started()
 async def bot_started(event: BotStarted):
-    async for session in db_helper.scoped_session_dependency():
+    async with db_helper.scoped_session_dependency() as session:
         await create_user(session, event.from_user.user_id)
-        break
 
     await bot.send_message(
         chat_id=event.chat_id,
@@ -44,10 +43,8 @@ async def bot_started(event: BotStarted):
 
 @router.message_created(Command('start'))
 async def start(event: MessageCreated):
-    keyboard = []
-    async for session in db_helper.scoped_session_dependency():
+    async with db_helper.scoped_session_dependency() as session:
         keyboard = await build_cities_keyboard(session)
-        break
 
     await event.message.answer(
         "Приветствую 🖐\n\nВыберите город, где нужно разместить рекламу:",
@@ -63,8 +60,7 @@ async def handle_city(callback: MessageCallback):
 
     chat_id = int(data.split("_")[1])
 
-    async for session in db_helper.scoped_session_dependency():
-        print(chat_id)
+    async with db_helper.scoped_session_dependency() as session:
         chat = await get_chat_by_id(session, chat_id)
         if not chat:
             await callback.message.answer("Ошибка: выбранный город не найден в базе.")
@@ -101,4 +97,3 @@ async def handle_city(callback: MessageCallback):
 2️⃣ Где находится Ваше заведение (либо по какому адресу предоставляете услугу)?"""
         )
 
-        break

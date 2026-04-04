@@ -32,7 +32,7 @@ async def add(event: MessageCreated, context: MemoryContext):
     try:
         if event.message.link.sender.user_id == 230120179:
             user = await bot.get_message(event.message.link.message.mid)
-            async for session in db_helper.scoped_session_dependency():
+            async with db_helper.scoped_session_dependency() as session:
                 chat = await get_chat_by_name(session, city)
 
                 try:
@@ -48,7 +48,6 @@ async def add(event: MessageCreated, context: MemoryContext):
                 except MaxApiError:
                     await event.message.answer(
                         f"<a href='max://user/{user.link.sender.user_id}'>Пользователь</a> не добавлен в чат {chat.name} - заблокировал бота", parse_mode=ParseMode.HTML,)
-                break
 
     except Exception as e:
         return await event.message.answer("Бот не добавлен в группу")
