@@ -43,7 +43,7 @@ MOSCOW_DISTRICTS = [
     "Сергиев Посад",
     "Химки",
     "Щелково",
-    "Другой",
+    "Другой город",
 ]
 
 # Список районов Санкт-Петербурга
@@ -65,7 +65,7 @@ SPB_DISTRICTS = [
     "СПБ Пушкинский",
     "СПБ Фрунзенский",
     "СПБ Центральный",
-    "Другой",
+    "Другой город",
 ]
 
 
@@ -87,18 +87,11 @@ def create_spb_keyboard():
     """Создает клавиатуру с районами Санкт-Петербурга"""
     builder = InlineKeyboardBuilder()
 
-    # Добавляем все районы СПБ
     for district in SPB_DISTRICTS:
         builder.row(CallbackButton(
             text=district,
             payload=f"spb_{district}"
         ))
-
-    # Добавляем кнопку "Другое"
-    builder.row(CallbackButton(
-        text="📍 Другое",
-        payload="other_city"
-    ))
 
     return builder.as_markup()
 
@@ -110,13 +103,8 @@ async def bot_started(event: BotStarted, context: MemoryContext):
 
     await bot.send_message(
         chat_id=event.chat_id,
-        text="""Здравствуйте 🖐
-
-Чтобы получить актуальные расценки на рекламу, ответьте пожалуйста на пару вопросов:
-1️⃣ Что планируете рекламировать?
-2️⃣ В каком городе находится Ваше заведение?
-
-Просто напишите город текстом."""
+        text="""Приветствую 🖐
+Напиши в каком городе тебе нужно разместить рекламу"""
     )
 
     await context.set_state(UserStates.waiting_for_city)
@@ -129,7 +117,8 @@ async def start(event: MessageCreated, context: MemoryContext):
         await create_user(session, event.from_user.user_id)
 
     await event.message.answer(
-        "Приветствую 🖐\n\nПожалуйста, напишите город, где нужно разместить рекламу:"
+        """Приветствую 🖐
+Напиши в каком городе тебе нужно разместить рекламу"""
     )
     await context.set_state(UserStates.waiting_for_city)
 
@@ -171,9 +160,12 @@ async def handle_city_callback(callback: MessageCallback, context: MemoryContext
         await context.set_state(None)
         await context.clear()
 
-        await callback.message.answer("""Чтобы получить актуальные расценки на рекламу, ответьте пожалуйста на пару вопросов:
-1️⃣ Что планируете рекламировать?
-2️⃣ Где находится Ваше заведение (либо по какому адресу предоставляете услугу)?"""
+        await callback.message.answer("""Чтобы получить актуальные расценки на рекламу, ответь пожалуйста на пару вопросов:
+
+1️⃣ Что будем рекламировать?
+2️⃣ В каком ЖК или мкр. нужна реклама?
+
+Мы ответим Вам в ближайшее время 😉"""
                                       )
         await callback.answer(f"Выбран город: {city_name}")
 
@@ -221,7 +213,10 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
 
         await context.set_state(None)
         await context.clear()
-        return await event.message.answer("""Чтобы получить актуальные расценки на рекламу, ответьте пожалуйста на пару вопросов:
-1️⃣ Что планируете рекламировать?
-2️⃣ Где находится Ваше заведение (либо по какому адресу предоставляете услугу)?"""
+        return await event.message.answer("""Чтобы получить актуальные расценки на рекламу, ответь пожалуйста на пару вопросов:
+
+1️⃣ Что будем рекламировать?
+2️⃣ В каком ЖК или мкр. нужна реклама?
+
+Мы ответим Вам в ближайшее время 😉"""
                                           )
