@@ -1,3 +1,5 @@
+import re
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from core.models import User, Chat
@@ -59,3 +61,26 @@ async def get_root_chats(session: AsyncSession) -> List[Chat]:
     stmt = select(Chat).where(Chat.parent_id == None)
     result = await session.execute(stmt)
     return list(result.scalars().all())
+
+def normalize_words(name: str) -> set[str]:
+    """
+    Приводим к нижнему регистру, заменяем дефисы на пробелы,
+    и разбиваем на отдельные слова, возвращаем как множество
+    """
+    name = name.lower().replace("-", " ")
+    words = set(name.split())
+    return words
+
+async def get_chat_by_name(session: AsyncSession, name: str) -> Optional[Chat]:
+    input_words = normalize_words(name.lower())
+
+    stmt = select(Chat)
+    result = await session.execute(stmt)
+    chats = result.scalars().all()
+
+    for chat in chats:
+        chat_words = normalize_words(chat.name)
+        if input_words <= chat_words:
+            return chat
+
+    return None

@@ -59,7 +59,6 @@ async def process_mailing_text(event: MessageCreated, context: MemoryContext):
 
     await context.set_state(None)
 
-    users = []
     async with db_helper.scoped_session_dependency() as session:
         users = await get_all_users(session)
 
