@@ -84,3 +84,9 @@ async def get_chat_by_name(session: AsyncSession, name: str) -> Optional[Chat]:
             return chat
 
     return None
+
+async def get_chat_by_name_exact(session: AsyncSession, name: str) -> Optional[Chat]:
+    """Точный поиск чата по имени"""
+    stmt = select(Chat).where(Chat.name == name)
+    result = await session.execute(stmt)
+    return result.scalar_one_or_none()
