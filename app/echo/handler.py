@@ -3,7 +3,6 @@ from maxapi.types import MessageCreated
 from core.config import bot
 from maxapi.exceptions import MaxApiError
 from maxapi.enums.parse_mode import ParseMode
-from core.config import settings
 from core.models import db_helper
 from maxapi.context import MemoryContext
 from app.utils.rate_limit import rate_limit
