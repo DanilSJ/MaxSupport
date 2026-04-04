@@ -6,6 +6,7 @@ from app.start.handler import router as start_router
 from app.mailing.handler import router as mailing_router
 from app.stats.handler import router as stats_router
 from app.echo.handler import router as echo_router
+from app.add.handler import router as add_router
 
 logging.basicConfig(level=logging.INFO)
 dp = Dispatcher()
@@ -14,6 +15,7 @@ async def main():
     dp.include_routers(mailing_router)
     dp.include_routers(start_router)
     dp.include_routers(stats_router)
+    dp.include_routers(add_router)
     dp.include_routers(echo_router)
 
     await asyncio.gather(
