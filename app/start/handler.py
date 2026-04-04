@@ -1,25 +1,35 @@
 from maxapi import Router
-from maxapi.types import MessageCreated, Command, BotStarted
+from maxapi.types import MessageCreated, Command, BotStarted, MessageCallback, CallbackButton
+from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
 from core.config import bot
 from core.models import db_helper
 from .crud import create_user, get_child_chats, get_root_chats, get_chat_by_id
-from maxapi.types import CallbackButton
-from maxapi.utils.inline_keyboard import InlineKeyboardBuilder
-from maxapi.types import MessageCallback
-
 
 router = Router()
 
-async def build_cities_keyboard(session):
-    chats = await get_root_chats(session)
+PAGE_SIZE = 10
 
+async def build_cities_keyboard(session, page: int = 0):
+    chats = await get_root_chats(session)
     builder = InlineKeyboardBuilder()
 
-    for chat in chats:
+    start = page * PAGE_SIZE
+    end = start + PAGE_SIZE
+    for chat in chats[start:end]:
+        # payload теперь содержит chat_id и часть названия
+        payload_name = chat.name.replace(" ", "_")
         builder.row(
             CallbackButton(
                 text=f"🔗 {chat.name}",
-                payload=f"city_{chat.chat_id}"
+                payload=f"city_{chat.chat_id}_{payload_name}"
+            )
+        )
+
+    if end < len(chats):
+        builder.row(
+            CallbackButton(
+                text="➡️ Следующие города",
+                payload=f"city_page_{page+1}"
             )
         )
 
@@ -31,6 +41,7 @@ async def build_cities_keyboard(session):
     )
 
     return builder.as_markup()
+
 
 @router.bot_started()
 async def bot_started(event: BotStarted):
@@ -45,7 +56,8 @@ async def bot_started(event: BotStarted):
 1️⃣ Что планируете рекламировать?
 2️⃣ Где находится Ваше заведение (либо по какому адресу предоставляете услугу)?
 
-Мы ответим Вам в ближайшее время 😉""")
+Мы ответим Вам в ближайшее время 😉"""
+    )
 
 
 @router.message_created(Command('start'))
@@ -73,15 +85,28 @@ async def handle_city(callback: MessageCallback):
             )
             return await callback.message.answer(
                 """Чтобы получить актуальные расценки на рекламу, ответьте пожалуйста на пару вопросов:
-    1️⃣ Что планируете рекламировать?
-    2️⃣ Где находится Ваше заведение (либо по какому адресу предоставляете услугу)?"""
+1️⃣ Что планируете рекламировать?
+2️⃣ Где находится Ваше заведение (либо по какому адресу предоставляете услугу)?"""
             )
 
+        # Обработка кнопок пагинации
+        if data.startswith("city_page_"):
+            page = int(data.split("_")[2])
+            keyboard = await build_cities_keyboard(session, page=page)
+            return await callback.message.edit(
+                text="Выберите город, где нужно разместить рекламу:",
+                attachments=[keyboard]
+            )
+
+        # Обработка выбора города
         if not data.startswith("city_"):
             return
 
-        chat_id = int(data.split("_")[1])
-        chat = await get_chat_by_id(session, chat_id)
+        parts = data.split("_", 2)
+        chat_id = int(parts[1])
+        name_part = parts[2] if len(parts) > 2 else None
+
+        chat = await get_chat_by_id(session, chat_id, name_part=name_part)
         if not chat:
             await callback.message.answer("Ошибка: выбранный город не найден в базе.")
             return
@@ -90,22 +115,20 @@ async def handle_city(callback: MessageCallback):
 
         if children:
             builder = InlineKeyboardBuilder()
-
             for child in children:
+                payload_name = child.name.replace(" ", "_")
                 builder.row(
                     CallbackButton(
                         text=f"🔗 {child.name}",
-                        payload=f"city_{child.chat_id}"
+                        payload=f"city_{child.chat_id}_{payload_name}"
                     )
                 )
-
             builder.row(
                 CallbackButton(
                     text="Другое",
                     payload="city_other"
                 )
             )
-
             await callback.message.answer(
                 f"Выберите район ({chat.name}):",
                 attachments=[builder.as_markup()]
@@ -117,7 +140,6 @@ async def handle_city(callback: MessageCallback):
             callback.from_user.user_id,
             chat_id=chat.chat_id
         )
-
         await callback.message.answer(
             """Чтобы получить актуальные расценки на рекламу, ответьте пожалуйста на пару вопросов:
 1️⃣ Что планируете рекламировать?
