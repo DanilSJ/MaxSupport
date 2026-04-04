@@ -5,5 +5,6 @@ from .base import Base
 
 class Message(Base):
     max_id: Mapped[int] = mapped_column(BigInteger)
+    chat_id: Mapped[int] = mapped_column(BigInteger)
     question: Mapped[bool] = mapped_column(Boolean)
     answer: Mapped[bool] = mapped_column(Boolean)
