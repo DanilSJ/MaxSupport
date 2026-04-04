@@ -6,7 +6,7 @@ from .base import Base
 
 
 class Chat(Base):
-    chat_id: Mapped[int] = mapped_column(BigInteger, unique=True)
+    chat_id: Mapped[int] = mapped_column(BigInteger)
     name: Mapped[str] = mapped_column(String)
 
     parent_id: Mapped[Optional[int]] = mapped_column(
