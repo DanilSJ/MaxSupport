@@ -7,6 +7,7 @@ from core.models import db_helper
 from maxapi.context import MemoryContext
 from app.utils.rate_limit import rate_limit
 from .crud import get_all_chats_id, get_user_with_chat
+from app.utils.crud import create_message
 
 router = Router()
 
@@ -30,6 +31,8 @@ async def echo(event: MessageCreated, context: MemoryContext):
                 if event.chat.chat_id not in chats_id:
                     if not user.chat_id:
                         return await event.message.answer("Выберите сначала свой город через команду /start")
+                    await create_message(session, user.max_id, user.chat_id, False, True)
+
                     return await event.message.forward(chat_id=user.chat_id)
             except Exception:
                 return await event.message.answer("Выберите сначала свой город через команду /start")
@@ -38,6 +41,8 @@ async def echo(event: MessageCreated, context: MemoryContext):
                 user = await bot.get_message(event.message.link.message.mid)
 
                 try:
+                    await create_message(session, user.link.sender.user_id, user.link.sender.user_id, True, False)
+
                     return await bot.send_message(user_id=user.link.sender.user_id, text=event.message.body.text)
                 except MaxApiError:
                     return await bot.send_message(chat_id=event.chat.chat_id,
