@@ -27,9 +27,13 @@ async def echo(event: MessageCreated, context: MemoryContext):
 
             chats_id = await get_all_chats_id(session)
 
-            if event.chat.chat_id not in chats_id:
-                return await event.message.forward(chat_id=user.chat_id)
-
+            try:
+                if event.chat.chat_id not in chats_id:
+                    if not user.chat_id:
+                        return await event.message.answer("Выберите сначала свой город через команду /start")
+                    return await event.message.forward(chat_id=user.chat_id)
+            except Exception:
+                return await event.message.answer("Выберите сначала свой город через команду /start")
 
             if event.message.link.sender.user_id == 230120179:
                 user = await bot.get_message(event.message.link.message.mid)
