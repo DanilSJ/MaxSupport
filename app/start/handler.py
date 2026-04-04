@@ -23,6 +23,13 @@ async def build_cities_keyboard(session):
             )
         )
 
+    builder.row(
+        CallbackButton(
+            text="Другое",
+            payload="city_other"
+        )
+    )
+
     return builder.as_markup()
 
 @router.bot_started()
@@ -51,16 +58,29 @@ async def start(event: MessageCreated):
         attachments=[keyboard]
     )
 
+
 @router.message_callback()
 async def handle_city(callback: MessageCallback):
-    data = callback.callback.payload  # city_1
-
-    if not data.startswith("city_"):
-        return
-
-    chat_id = int(data.split("_")[1])
+    data = callback.callback.payload
 
     async with db_helper.scoped_session_dependency() as session:
+        if data == "city_other":
+            fixed_chat_id = -73032999721126
+            await create_user(
+                session,
+                callback.from_user.user_id,
+                chat_id=fixed_chat_id
+            )
+            return await callback.message.answer(
+                """Чтобы получить актуальные расценки на рекламу, ответьте пожалуйста на пару вопросов:
+    1️⃣ Что планируете рекламировать?
+    2️⃣ Где находится Ваше заведение (либо по какому адресу предоставляете услугу)?"""
+            )
+
+        if not data.startswith("city_"):
+            return
+
+        chat_id = int(data.split("_")[1])
         chat = await get_chat_by_id(session, chat_id)
         if not chat:
             await callback.message.answer("Ошибка: выбранный город не найден в базе.")
@@ -79,6 +99,13 @@ async def handle_city(callback: MessageCallback):
                     )
                 )
 
+            builder.row(
+                CallbackButton(
+                    text="Другое",
+                    payload="city_other"
+                )
+            )
+
             await callback.message.answer(
                 f"Выберите район ({chat.name}):",
                 attachments=[builder.as_markup()]
@@ -96,4 +123,3 @@ async def handle_city(callback: MessageCallback):
 1️⃣ Что планируете рекламировать?
 2️⃣ Где находится Ваше заведение (либо по какому адресу предоставляете услугу)?"""
         )
-
