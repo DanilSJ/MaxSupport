@@ -60,14 +60,9 @@ async def mailing_command(event: MessageCreated, context: MemoryContext):
             await context.clear()
             return
 
-        # Формируем список городов (показываем только основные названия)
-        cities_list = "\n".join([f"• {chat.name.split()[0]}" for chat in chats])
 
         await event.message.answer(
             f"🏙️ **Выберите город для рассылки**\n\n"
-            f"Доступные города:\n{cities_list}\n\n"
-            f"Введите название города или его сокращение из списка выше.\n\n"
-            f"Например: 'Москва', 'МСК', 'СПБ', 'НСК', 'ЕКБ' и т.д.\n\n"
             f"Для рассылки ВСЕМ пользователям отправьте: **всем**\n\n"
             f"Для отмены рассылки отправьте /cancel_mailing",
             parse_mode=ParseMode.MARKDOWN
