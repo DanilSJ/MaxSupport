@@ -33,11 +33,22 @@ async def get_all_chat(session: AsyncSession) -> List[Chat]:
     chats = result.scalars().all()
     return list(chats)
 
-async def get_chat_by_id(session: AsyncSession, chat_id: int) -> Optional[Chat]:
+async def get_chat_by_id(session: AsyncSession, chat_id: int, name_part: str | None = None) -> Optional[Chat]:
     stmt = select(Chat).where(Chat.chat_id == chat_id)
     result = await session.execute(stmt)
-    return result.scalar_one_or_none()
+    chats = result.scalars().all()
 
+    if not chats:
+        return None
+
+    if len(chats) == 1 or not name_part:
+        return chats[0]
+
+    for chat in chats:
+        if name_part.lower() in chat.name.lower():
+            return chat
+
+    return chats[0]
 
 async def get_child_chats(session: AsyncSession, parent_id: int):
     stmt = select(Chat).where(Chat.parent_id == parent_id)
