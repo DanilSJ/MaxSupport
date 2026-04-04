@@ -36,7 +36,7 @@ async def get_users_by_chat(session: AsyncSession, chat_id: int) -> List[User]:
 
 
 async def get_chat_by_name(session: AsyncSession, name: str) -> Optional[Chat]:
-    """Получить город по названию"""
+    """Получить город по названию (точное совпадение)"""
     stmt = select(Chat).where(Chat.name == name)
     result = await session.execute(stmt)
     return result.scalar_one_or_none()
