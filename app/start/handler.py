@@ -68,6 +68,28 @@ SPB_DISTRICTS = [
     "Другой город",
 ]
 
+# Список городов Крыма
+CRIMEA_CITIES = [
+    "Алушта",
+    "Лучистое",
+    "Заозерное",
+    "Алупка",
+    "Армянск",
+    "Бахчисарай",
+    "Белогорск",
+    "Гурзуф",
+    "Джанкой",
+    "Керчь",
+    "Коктебель",
+    "Красноперекопск",
+    "Саки",
+    "Старый Крым",
+    "Судак",
+    "Феодосия",
+    "Черноморское",
+    "Другой город",
+]
+
 
 def create_moscow_keyboard():
     """Создает клавиатуру с округами Москвы и городами Подмосковья"""
@@ -91,6 +113,19 @@ def create_spb_keyboard():
         builder.row(CallbackButton(
             text=district,
             payload=f"spb_{district}"
+        ))
+
+    return builder.as_markup()
+
+
+def create_crimea_keyboard():
+    """Создает клавиатуру с городами Крыма"""
+    builder = InlineKeyboardBuilder()
+
+    for city in CRIMEA_CITIES:
+        builder.row(CallbackButton(
+            text=city,
+            payload=f"crimea_{city}"
         ))
 
     return builder.as_markup()
@@ -142,6 +177,8 @@ async def handle_city_callback(callback: MessageCallback, context: MemoryContext
         city_name = payload[7:]  # убираем префикс "moscow_"
     elif payload.startswith("spb_"):
         city_name = payload[4:]  # убираем префикс "spb_"
+    elif payload.startswith("crimea_"):
+        city_name = payload[7:]  # убираем префикс "crimea_"
 
     if city_name:
         async with db_helper.scoped_session_dependency() as session:
@@ -200,7 +237,17 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
             )
             return
 
-        # Если не Москва и не СПБ - ищем в базе как обычно
+        # Проверяем на Крым
+        if (text_lower == "крым" or
+                text_lower == "республика крым" or
+                text_lower == "крымский полуостров"):
+            await event.message.answer(
+                "Выберите город Крыма:",
+                attachments=[create_crimea_keyboard()]
+            )
+            return
+
+        # Если не Москва, не СПБ и не Крым - ищем в базе как обычно
         async with db_helper.scoped_session_dependency() as session:
             chat = await get_chat_by_name(session, text)
 
