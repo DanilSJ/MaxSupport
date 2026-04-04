@@ -99,7 +99,7 @@ async def process_city_selection(event: MessageCreated, context: MemoryContext):
         selected_chat = find_chat_by_name(chats, city_name)
 
         if selected_chat:
-            await context.update_data(selected_city=selected_chat.name, city_id=selected_chat.id)
+            await context.update_data(selected_city=selected_chat.name, city_id=selected_chat.chat_id)
             await context.set_state(MailingStates.waiting_for_content)
             await event.message.answer(
                 f"🏙️ **Выбран город: {selected_chat.name.split()[0]}**\n\n"
@@ -109,13 +109,8 @@ async def process_city_selection(event: MessageCreated, context: MemoryContext):
                 parse_mode=ParseMode.MARKDOWN
             )
         else:
-            # Город не найден - показываем список снова
-            cities_list = "\n".join([f"• {chat.name.split()[0]}" for chat in chats])
-
             await event.message.answer(
                 f"❌ Город или сокращение '{city_name}' не найдены.\n\n"
-                f"Доступные города и их сокращения:\n{cities_list}\n\n"
-                f"Примеры ввода: 'Москва', 'МСК', 'Санкт-Петербург', 'СПБ', 'Новосибирск', 'НСК'\n\n"
                 f"Или отправьте 'всем' для рассылки всем пользователям.",
                 parse_mode=ParseMode.MARKDOWN
             )
@@ -172,28 +167,24 @@ async def process_mailing_content(event: MessageCreated, context: MemoryContext)
     # Сохраняем оригинальное сообщение для рассылки
     mailing_message = event.message
 
-    # Предварительно загружаем медиа (если есть)
-    uploaded_attachment = None
+    # Получаем attachment (если есть) - используем как есть, без загрузки
+    attachment = None
+    has_attachment = False
+
     if mailing_message.body.attachments:
-        try:
-            uploaded_attachment = await bot.upload_media(mailing_message.body.attachments[0])
-        except Exception as e:
-            await event.message.answer(
-                f"❌ Ошибка при загрузке медиафайла: {e}",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            await context.clear()
-            return
+        has_attachment = True
+        attachment = mailing_message.body.attachments[0]
+        # Не нужно загружать, просто используем существующий объект
 
     for user in users:
         try:
-            if uploaded_attachment:
-                # Отправляем с предварительно загруженным вложением
+            if has_attachment:
+                # Отправляем с вложением (используем существующий объект)
                 text = mailing_message.body.text if mailing_message.body.text else None
                 await bot.send_message(
                     user_id=user.max_id,
                     text=text,
-                    attachments=[uploaded_attachment],
+                    attachments=[attachment],
                     parse_mode=ParseMode.HTML if text else None
                 )
             elif mailing_message.body.text:
@@ -207,9 +198,8 @@ async def process_mailing_content(event: MessageCreated, context: MemoryContext)
                 raise Exception("No content to send")
 
             success_count += 1
-            await asyncio.sleep(0.1)  # Защита от флуда
+            await asyncio.sleep(0.1)
         except Exception as e:
-            print(f"Ошибка при отправке пользователю {user.max_id}: {e}")
             blocked_count += 1
             continue
 
@@ -218,7 +208,7 @@ async def process_mailing_content(event: MessageCreated, context: MemoryContext)
         f"Целевая аудитория: {city_info}\n"
         f"Всего пользователей: {len(users)}\n"
         f"Сообщений отправлено: {success_count}\n"
-        f"Не смогли доставить (заблокировали бота или ошибки): {blocked_count}",
+        f"Не смогли доставить: {blocked_count}",
         parse_mode=ParseMode.MARKDOWN
     )
 
