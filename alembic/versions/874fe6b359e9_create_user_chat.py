@@ -1,8 +1,8 @@
 """create user, chat
 
-Revision ID: 106e4f1f9b5d
+Revision ID: 874fe6b359e9
 Revises: 
-Create Date: 2026-04-03 22:25:24.644855
+Create Date: 2026-04-03 23:37:13.592977
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '106e4f1f9b5d'
+revision: str = '874fe6b359e9'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -24,14 +24,16 @@ def upgrade() -> None:
     op.create_table('chats',
     sa.Column('chat_id', sa.BigInteger(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
+    sa.Column('parent_id', sa.Integer(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('create_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.ForeignKeyConstraint(['parent_id'], ['chats.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('chat_id')
     )
     op.create_table('users',
     sa.Column('max_id', sa.BigInteger(), nullable=False),
-    sa.Column('admin', sa.Boolean(), nullable=True),
+    sa.Column('admin', sa.Boolean(), nullable=False),
     sa.Column('chat_id', sa.Integer(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('create_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
