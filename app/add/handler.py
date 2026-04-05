@@ -27,13 +27,14 @@ async def add(event: MessageCreated, context: MemoryContext):
             "❌ Укажите город!\nПример: /add Москва"
         )
 
-    city = parts[1].strip().lower()
+    city_name = parts[1].strip().lower()  # Переименовал переменную для ясности
 
     try:
         if event.message.link.sender.user_id == 230120179:
             user = await bot.get_message(event.message.link.message.mid)
             async with db_helper.scoped_session_dependency() as session:
-                chat = await get_chat_by_name(session, city)
+                # Используем get_chat_by_name для поиска города
+                chat = await get_chat_by_name(session, city_name)
 
                 try:
                     if chat:
@@ -43,11 +44,12 @@ async def add(event: MessageCreated, context: MemoryContext):
                             f"<a href='max://user/{user.link.sender.user_id}'>Пользователь</a> добавлен в чат {chat.name}",
                             parse_mode=ParseMode.HTML, )
                     else:
-                        await event.message.answer(f"Город с названием {city} не найден")
+                        await event.message.answer(f"Город с названием {city_name} не найден")
 
                 except MaxApiError:
                     await event.message.answer(
-                        f"<a href='max://user/{user.link.sender.user_id}'>Пользователь</a> не добавлен в чат {chat.name} - заблокировал бота", parse_mode=ParseMode.HTML,)
+                        f"<a href='max://user/{user.link.sender.user_id}'>Пользователь</a> не добавлен в чат {chat.name if chat else 'неизвестный'} - заблокировал бота",
+                        parse_mode=ParseMode.HTML,)
 
     except Exception as e:
         return await event.message.answer("Бот не добавлен в группу")
