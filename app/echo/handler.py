@@ -43,12 +43,11 @@ async def echo(event: MessageCreated, context: MemoryContext):
                     await create_message(session, user_obj.link.sender.user_id, user_obj.link.sender.user_id, True, False)
 
                     if event.message.body.attachments:
-                        attachment = event.message.body.attachments[0]
                         text = event.message.body.text if event.message.body.text else None
                         return await bot.send_message(
                             user_id=user_obj.link.sender.user_id,
                             text=text,
-                            attachments=[attachment],
+                            attachments=event.message.body.attachments,
                             parse_mode=ParseMode.HTML if text else None
                         )
                     else:
