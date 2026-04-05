@@ -20,7 +20,6 @@ async def echo(event: MessageCreated, context: MemoryContext):
         return
 
     try:
-
         async with db_helper.scoped_session_dependency() as session:
             user = await get_user_with_chat(session, event.from_user.user_id)
 
@@ -32,20 +31,43 @@ async def echo(event: MessageCreated, context: MemoryContext):
                         return await event.message.answer("Выберите сначала свой город через команду /start")
                     await create_message(session, user.max_id, user.chat_id, False, True)
 
-                    return await event.message.forward(chat_id=user.chat_id)
+                    if event.message.body.attachments:
+                        attachment = event.message.body.attachments[0]
+                        text = event.message.body.text if event.message.body.text else None
+                        return await bot.send_message(
+                            user_id=user.chat_id,
+                            text=text,
+                            attachments=[attachment],
+                            parse_mode=ParseMode.HTML if text else None
+                        )
+                    else:
+                        return await event.message.forward(chat_id=user.chat_id)
             except Exception:
                 return await event.message.answer("Выберите сначала свой город через команду /start")
 
             if event.message.link.sender.user_id == 230120179:
-                user = await bot.get_message(event.message.link.message.mid)
+                user_obj = await bot.get_message(event.message.link.message.mid)
 
                 try:
-                    await create_message(session, user.link.sender.user_id, user.link.sender.user_id, True, False)
+                    await create_message(session, user_obj.link.sender.user_id, user_obj.link.sender.user_id, True, False)
 
-                    return await bot.send_message(user_id=user.link.sender.user_id, text=event.message.body.text)
+                    if event.message.body.attachments:
+                        attachment = event.message.body.attachments[0]
+                        text = event.message.body.text if event.message.body.text else None
+                        return await bot.send_message(
+                            user_id=user_obj.link.sender.user_id,
+                            text=text,
+                            attachments=[attachment],
+                            parse_mode=ParseMode.HTML if text else None
+                        )
+                    else:
+                        return await bot.send_message(
+                            user_id=user_obj.link.sender.user_id,
+                            text=event.message.body.text
+                        )
                 except MaxApiError:
                     return await bot.send_message(chat_id=event.chat.chat_id,
-                                                  text=f"<a href='max://user/{user.link.sender.user_id}'>Пользователь</a> заблокировал бота",
+                                                  text=f"<a href='max://user/{user_obj.link.sender.user_id}'>Пользователь</a> заблокировал бота",
                                                   parse_mode=ParseMode.HTML)
 
     except Exception as e:

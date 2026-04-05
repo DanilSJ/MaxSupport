@@ -1,5 +1,5 @@
 from maxapi import Router
-from maxapi.types import MessageCreated, Command, InputMedia
+from maxapi.types import MessageCreated, Command
 from core.config import bot
 from maxapi.enums.parse_mode import ParseMode
 import asyncio
