@@ -31,18 +31,9 @@ async def echo(event: MessageCreated, context: MemoryContext):
                         return await event.message.answer("Выберите сначала свой город через команду /start")
                     await create_message(session, user.max_id, user.chat_id, False, True)
 
-                    if event.message.body.attachments:
-                        attachment = event.message.body.attachments[0]
-                        text = event.message.body.text if event.message.body.text else None
-                        return await bot.send_message(
-                            user_id=user.chat_id,
-                            text=text,
-                            attachments=[attachment],
-                            parse_mode=ParseMode.HTML if text else None
-                        )
-                    else:
-                        return await event.message.forward(chat_id=user.chat_id)
-            except Exception:
+                    return await event.message.forward(chat_id=user.chat_id)
+            except Exception as e:
+                print(e)
                 return await event.message.answer("Выберите сначала свой город через команду /start")
 
             if event.message.link.sender.user_id == 230120179:
