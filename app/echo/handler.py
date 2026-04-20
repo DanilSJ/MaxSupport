@@ -31,6 +31,8 @@ async def echo(event: MessageCreated, context: MemoryContext):
                         return await event.message.answer("Выберите сначала свой город через команду /start")
                     await create_message(session, user.max_id, user.chat_id, False, True)
 
+                    event.message.body.text = f"ID: {event.from_user.user_id} UserName:{event.from_user.username}\nИмя фамилия: {event.from_user.first_name} {event.from_user.last_name}\n\n{event.message.body.text}"
+
                     return await event.message.forward(chat_id=user.chat_id)
             except Exception as e:
                 print(e)
