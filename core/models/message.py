@@ -1,4 +1,4 @@
-from sqlalchemy import BigInteger, Boolean
+from sqlalchemy import BigInteger, Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
 from .base import Base
 
@@ -6,5 +6,7 @@ from .base import Base
 class Message(Base):
     max_id: Mapped[int] = mapped_column(BigInteger)
     chat_id: Mapped[int] = mapped_column(BigInteger)
+    admin_message_id: Mapped[str] = mapped_column(String, nullable=True)
+    user_message_id: Mapped[str] = mapped_column(String, nullable=True)
     question: Mapped[bool] = mapped_column(Boolean)
     answer: Mapped[bool] = mapped_column(Boolean)
