@@ -66,7 +66,7 @@ async def echo(event: MessageCreated, context: MemoryContext):
 
                     await create_message(session, user.max_id, user.chat_id, None, event.message.body.mid,False, True)
 
-                    event.message.body.text = f"ID: {event.from_user.user_id} UserName:{event.from_user.username}\nИмя фамилия: {event.from_user.first_name} {event.from_user.last_name}\n\n{event.message.body.text}"
+                    await bot.send_message(chat_id=user.chat_id, text=f"ID: {event.from_user.user_id} UserName:{event.from_user.username}\nИмя фамилия: {event.from_user.first_name} {event.from_user.last_name}\n\n{event.message.body.text}")
 
                     return await event.message.forward(chat_id=user.chat_id)
             except Exception as e:
