@@ -94,13 +94,15 @@ async def get_chat_by_name(session, text: str) -> Optional[Chat]:
     chats = result.scalars().all()
 
     for chat in chats:
-        chat_name = normalize_text(chat.name)
+        # Все слова из chat.name считаем алиасами
+        aliases = normalize_text(chat.name).split()
 
-        # Ищем название города внутри текста
-        pattern = rf"\b{re.escape(chat_name)}\b"
+        for alias in aliases:
+            # Ищем слово отдельно
+            pattern = rf"\b{re.escape(alias)}\b"
 
-        if re.search(pattern, input_text):
-            return chat
+            if re.search(pattern, input_text):
+                return chat
 
     return None
 

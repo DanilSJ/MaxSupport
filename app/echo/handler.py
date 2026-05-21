@@ -13,37 +13,39 @@ router = Router()
 
 @router.message_edited()
 async def message_edited(event: MessageEdited):
-    if event.message.link.sender.user_id != 230120179:
-        return
-
-    admin_message_id = event.message.link.message.mid
-    print(admin_message_id)
-    async with db_helper.scoped_session_dependency() as session:
-        db_message = await get_message_by_admin_id(
-            session,
-            admin_message_id
-        )
-        if not db_message:
+    try:
+        if event.message.link.sender.user_id != 230120179:
             return
 
-        user_chat_id = db_message.chat_id
-        user_message_id = db_message.user_message_id
-
-        try:
-            await bot.edit_message(
-                message_id=user_message_id,
-                text=event.message.body.text,
-                attachments=event.message.body.attachments if event.message.body.attachments else None,
-                parse_mode=ParseMode.HTML if event.message.body.text else None
+        admin_message_id = event.message.link.message.mid
+        print(admin_message_id)
+        async with db_helper.scoped_session_dependency() as session:
+            db_message = await get_message_by_admin_id(
+                session,
+                admin_message_id
             )
+            if not db_message:
+                return
 
-        except MaxApiError:
-            await bot.send_message(
-                chat_id=event.chat.chat_id,
-                text=f"<a href='max://user/{user_chat_id}'>Пользователь</a> заблокировал бота",
-                parse_mode=ParseMode.HTML
-            )
+            user_chat_id = db_message.chat_id
+            user_message_id = db_message.user_message_id
 
+            try:
+                await bot.edit_message(
+                    message_id=user_message_id,
+                    text=event.message.body.text,
+                    attachments=event.message.body.attachments if event.message.body.attachments else None,
+                    parse_mode=ParseMode.HTML if event.message.body.text else None
+                )
+
+            except MaxApiError:
+                await bot.send_message(
+                    chat_id=event.chat.chat_id,
+                    text=f"<a href='max://user/{user_chat_id}'>Пользователь</a> заблокировал бота",
+                    parse_mode=ParseMode.HTML
+                )
+    except Exception as e:
+        print(e)
 
 @router.message_created(F.message.body)
 @rate_limit(limit=2, seconds=2)
