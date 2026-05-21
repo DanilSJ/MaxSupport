@@ -75,7 +75,7 @@ async def echo(event: MessageCreated, context: MemoryContext):
 
             if event.message.link.sender.user_id == 230120179:
                 user_obj = await bot.get_message(event.message.link.message.mid)
-
+                print(event.message)
                 try:
                     if event.message.body.attachments:
                         text = event.message.body.text if event.message.body.text else None

@@ -71,16 +71,35 @@ def normalize_words(name: str) -> set[str]:
     words = set(name.split())
     return words
 
-async def get_chat_by_name(session: AsyncSession, name: str) -> Optional[Chat]:
-    input_words = normalize_words(name.lower())
+
+def normalize_text(text: str) -> str:
+    """
+    Нормализация текста:
+    - lowercase
+    - ё -> е
+    - дефисы -> пробелы
+    - убираем лишние символы
+    """
+    text = text.lower()
+    text = text.replace("-", " ")
+    text = re.sub(r"[^а-яa-z0-9\s]", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+async def get_chat_by_name(session, text: str) -> Optional[Chat]:
+    input_text = normalize_text(text)
 
     stmt = select(Chat)
     result = await session.execute(stmt)
     chats = result.scalars().all()
 
     for chat in chats:
-        chat_words = normalize_words(chat.name)
-        if input_words <= chat_words:
+        chat_name = normalize_text(chat.name)
+
+        # Ищем название города внутри текста
+        pattern = rf"\b{re.escape(chat_name)}\b"
+
+        if re.search(pattern, input_text):
             return chat
 
     return None
