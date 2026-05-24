@@ -87,24 +87,27 @@ def normalize_text(text: str) -> str:
     return text
 
 async def get_chat_by_name(session, text: str) -> Optional[Chat]:
-    input_text = normalize_text(text)
+    input_words = set(normalize_text(text).split())
 
     stmt = select(Chat)
     result = await session.execute(stmt)
     chats = result.scalars().all()
 
+    best_chat = None
+    best_score = 0
+
     for chat in chats:
-        # Все слова из chat.name считаем алиасами
-        aliases = normalize_text(chat.name).split()
+        chat_words = set(normalize_text(chat.name).split())
 
-        for alias in aliases:
-            # Ищем слово отдельно
-            pattern = rf"\b{re.escape(alias)}\b"
+        # сколько слов совпало
+        score = len(input_words & chat_words)
 
-            if re.search(pattern, input_text):
-                return chat
+        # выбираем лучший матч
+        if score > best_score:
+            best_score = score
+            best_chat = chat
 
-    return None
+    return best_chat
 
 async def get_chat_by_name_exact(session: AsyncSession, name: str) -> Optional[Chat]:
     """Точный поиск чата по имени"""
