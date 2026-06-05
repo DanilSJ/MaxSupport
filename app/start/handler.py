@@ -185,13 +185,23 @@ async def handle_city_callback(callback: MessageCallback, context: MemoryContext
             chat = await get_chat_by_name(session, city_name)
 
             if not chat:
-                await callback.message.answer(
-                    f"Извините, '{city_name}' не найден в базе. Пожалуйста, напишите город текстом."
-                )
-                await callback.answer()
-                return
+                # Если город не найден, ищем "Другой город"
+                other_city_chat = await get_chat_by_name(session, "Другой город")
 
-            await create_user(session, callback.from_user.user_id, chat_id=chat.chat_id)
+                if other_city_chat:
+                    # Используем "Другой город" вместо ненайденного
+                    await create_user(session, callback.from_user.user_id, chat_id=other_city_chat.chat_id)
+                    await callback.message.answer(
+                        f"Город '{city_name}' не найден в базе. Вы добавлены в категорию 'Другой город'."
+                    )
+                else:
+                    await callback.message.answer(
+                        f"Извините, '{city_name}' не найден в базе. Пожалуйста, напишите город текстом."
+                    )
+                    await callback.answer()
+                    return
+            else:
+                await create_user(session, callback.from_user.user_id, chat_id=chat.chat_id)
 
         await context.set_state(None)
         await context.clear()
@@ -251,11 +261,22 @@ async def handle_message(event: MessageCreated, context: MemoryContext):
             chat = await get_chat_by_name(session, text)
 
             if not chat:
-                return await event.message.answer(
-                    f"Город '{text}' не найден в базе. Попробуйте еще раз."
-                )
+                # Если город не найден, ищем "Другой город"
+                other_city_chat = await get_chat_by_name(session, "Другой город")
 
-            await create_user(session, event.from_user.user_id, chat_id=chat.chat_id)
+                if other_city_chat:
+                    # Используем "Другой город" вместо ненайденного
+                    await create_user(session, event.from_user.user_id, chat_id=other_city_chat.chat_id)
+                    await event.message.answer(
+                        f"Город '{text}' не найден в базе. Вы добавлены в категорию 'Другой город'."
+                    )
+                else:
+                    await event.message.answer(
+                        f"Город '{text}' не найден в базе. Попробуйте еще раз."
+                    )
+                    return
+            else:
+                await create_user(session, event.from_user.user_id, chat_id=chat.chat_id)
 
         await context.set_state(None)
         await context.clear()
