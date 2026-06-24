@@ -131,32 +131,169 @@ def create_crimea_keyboard():
     return builder.as_markup()
 
 
+async def handle_city_from_payload(event, context, payload):
+    """
+    Обрабатывает город из payload (параметра ссылки)
+    payload может быть: 'moscow', 'spb', 'crimea' или название города
+    """
+    payload_lower = payload.lower()
+
+    # Проверяем, что это за город
+    if payload_lower in ["moscow", "москва", "мск"]:
+        # Показываем клавиатуру Москвы
+        await event.message.answer(
+            "Выберите округ Москвы или город:",
+            attachments=[create_moscow_keyboard()]
+        )
+        return
+
+    elif payload_lower in ["spb", "санкт-петербург", "питер"]:
+        # Показываем клавиатуру СПб
+        await event.message.answer(
+            "Выберите район Санкт-Петербурга:",
+            attachments=[create_spb_keyboard()]
+        )
+        return
+
+    elif payload_lower in ["crimea", "крым"]:
+        # Показываем клавиатуру Крыма
+        await event.message.answer(
+            "Выберите город Крыма:",
+            attachments=[create_crimea_keyboard()]
+        )
+        return
+
+    # Если указан конкретный город из списка (например, "балашиха")
+    # Проверяем все списки
+    city_found = None
+
+    # Ищем в списке Москвы
+    for city in MOSCOW_DISTRICTS:
+        if city.lower() == payload_lower:
+            city_found = city
+            await process_city_selection(event, context, city, "moscow")
+            return
+
+    # Ищем в списке СПб
+    for city in SPB_DISTRICTS:
+        if city.lower() == payload_lower:
+            city_found = city
+            await process_city_selection(event, context, city, "spb")
+            return
+
+    # Ищем в списке Крыма
+    for city in CRIMEA_CITIES:
+        if city.lower() == payload_lower:
+            city_found = city
+            await process_city_selection(event, context, city, "crimea")
+            return
+
+    # Если город не найден в списках, пробуем найти в БД
+    async with db_helper.scoped_session_dependency() as session:
+        chat = await get_chat_by_name(session, payload)
+
+        if chat:
+            await create_user(session, event.from_user.user_id, chat_id=chat.chat_id)
+            await context.set_state(None)
+            await context.clear()
+
+            await event.message.answer(
+                f"✅ Вы выбрали город: {payload}\n\n"
+                """Чтобы получить актуальные расценки на рекламу, ответь пожалуйста на пару вопросов:
+
+1️⃣ Что будем рекламировать?
+2️⃣ В каком ЖК или мкр. нужна реклама?
+
+Мы ответим Вам в ближайшее время 😉"""
+            )
+            return
+
+    # Если ничего не найдено
+    await event.message.answer(
+        f"Город '{payload}' не найден. Пожалуйста, выберите город из списка или напишите название."
+    )
+    await context.set_state(UserStates.waiting_for_city)
+
+
+async def process_city_selection(event, context, city_name, prefix):
+    """Обрабатывает выбор конкретного города из списка"""
+    async with db_helper.scoped_session_dependency() as session:
+        chat = await get_chat_by_name(session, city_name)
+
+        if not chat:
+            # Ищем "Другой город"
+            other_city_chat = await get_chat_by_name(session, "Другой город")
+            if other_city_chat:
+                await create_user(session, event.from_user.user_id, chat_id=other_city_chat.chat_id)
+                await event.message.answer(
+                    f"Город '{city_name}' не найден в базе. Вы добавлены в категорию 'Другой город'."
+                )
+            else:
+                await event.message.answer(
+                    f"Извините, '{city_name}' не найден в базе."
+                )
+                return
+        else:
+            await create_user(session, event.from_user.user_id, chat_id=chat.chat_id)
+
+    await context.set_state(None)
+    await context.clear()
+
+    await event.message.answer(
+        f"✅ Вы выбрали: {city_name}\n\n"
+        """Чтобы получить актуальные расценки на рекламу, ответь пожалуйста на пару вопросов:
+
+1️⃣ Что будем рекламировать?
+2️⃣ В каком ЖК или мкр. нужна реклама?
+
+Мы ответим Вам в ближайшее время 😉"""
+    )
+
 @router.bot_started()
 async def bot_started(event: BotStarted, context: MemoryContext):
     async with db_helper.scoped_session_dependency() as session:
         await create_user(session, event.from_user.user_id)
 
+    # Проверяем, есть ли параметр в команде /start
+    # Например: /start moscow
+    payload = event.payload  # или event.text, зависит от реализации maxapi
+
+    # Если есть параметр - обрабатываем его как город
+    if payload:
+        await handle_city_from_payload(event, context, payload)
+        return
+
+    # Если параметра нет - обычное приветствие
     await bot.send_message(
         chat_id=event.chat_id,
         text="""Приветствую 🖐
 Напиши в каком городе тебе нужно разместить рекламу"""
     )
-
     await context.set_state(UserStates.waiting_for_city)
 
 
-# команда /start
 @router.message_created(Command('start'))
 async def start(event: MessageCreated, context: MemoryContext):
     async with db_helper.scoped_session_dependency() as session:
         await create_user(session, event.from_user.user_id)
 
+    # Извлекаем параметр из команды /start
+    # Формат: /start moscow
+    text = event.message.body.text
+    parts = text.split()
+
+    if len(parts) > 1:
+        # Есть параметр
+        payload = parts[1]
+        await handle_city_from_payload(event, context, payload)
+        return
+
+    # Обычный старт
     await event.message.answer(
         """Приветствую 🖐
 Напиши в каком городе тебе нужно разместить рекламу"""
     )
     await context.set_state(UserStates.waiting_for_city)
-
 
 @router.message_callback()
 async def handle_city_callback(callback: MessageCallback, context: MemoryContext):
